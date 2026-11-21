@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Empresarial - Estratégia, Marketing e Vendas</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js para gráficos do dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDK (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <!-- TELA DE LOGIN -->
+  <div id="login-screen" class="container center-box">
+    <div class="card login-card">
+      <h1>🏢 Simulador Empresarial</h1>
+      <p class="subtitle">Estratégia de Marketing, Comunicação e Vendas</p>
+      
+      <div class="form-group">
+        <label for="login-role">Selecione seu Acesso:</label>
+        <select id="login-role">
+          <option value="grupo1">Grupo 1 - Empresa Alpha</option>
+          <option value="grupo2">Grupo 2 - Empresa Beta</option>
+          <option value="grupo3">Grupo 3 - Empresa Gamma</option>
+          <option value="grupo4">Grupo 4 - Empresa Delta</option>
+          <option value="grupo5">Grupo 5 - Empresa Épsilon</option>
+          <option value="grupo6">Grupo 6 - Empresa Ômega</option>
+          <option value="professor">👨‍🏫 Painel do Professor</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="login-pass">Senha de Acesso:</label>
+        <input type="password" id="login-pass" placeholder="Digite a senha...">
+      </div>
+
+      <button onclick="fazerLogin()" class="btn btn-primary full-width">Entrar no Sistema</button>
+      <p id="login-error" class="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- PAINEL DO ALUNO -->
+  <div id="student-screen" class="container hidden">
+    <header class="topbar">
+      <div>
+        <h2 id="st-company-title">Nome da Empresa</h2>
+        <span id="st-round-badge" class="badge">Mês 1</span>
+        <span id="st-status-badge" class="badge badge-open">Rodada Aberta</span>
+      </div>
+      <button onclick="logout()" class="btn btn-outline">Sair</button>
+    </header>
+
+    <!-- Banner do Cenário Atual -->
+    <div class="scenario-banner">
+      <strong>📢 Cenário do Mercado (<span id="st-scenario-name">Carregando...</span>):</strong>
+      <p id="st-scenario-desc">...</p>
+    </div>
+
+    <!-- Navegação por Abas -->
+    <nav class="tabs">
+      <button class="tab-btn active" onclick="openTab('tab-dashboard', this)">📊 Dashboard</button>
+      <button class="tab-btn" onclick="openTab('tab-vitrine', this)">🤝 Vitrine & Negociações <span id="notif-badge" class="notif hidden">0</span></button>
+      <button class="tab-btn" onclick="openTab('tab-decisoes', this)">🎯 Decisões do Mês</button>
+      <button class="tab-btn" onclick="openTab('tab-prospect', this)">✏️ Meu Prospect</button>
+    </nav>
+
+    <!-- ABA 1: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-content active">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span>Caixa Atual</span>
+          <h3 id="kpi-caixa">R$ 0,00</h3>
+        </div>
+        <div class="kpi-card">
+          <span>Market Share (Mês)</span>
+          <h3 id="kpi-share">0%</h3>
+        </div>
+        <div class="kpi-card">
+          <span>Contas a Receber / Pagar (Próx. Mês)</span>
+          <h3 id="kpi-futuro" style="font-size: 1.1rem;">+R$ 0 / -R$ 0</h3>
+        </div>
+        <div class="kpi-card highlight">
+          <span>Score (Nota Desempenho)</span>
+          <h3 id="kpi-score">0 pts</h3>
+        </div>
+        <div class="kpi-card highlight">
+          <span>Avaliação</span>
+          <h3 id="kpi-stars">0.0 / 5</h3>
+        </div>
+        <div class="kpi-card">
+          <span>Estoques</span>
+          <h3 id="kpi-estoque" style="font-size: 0.95rem;">Comprado: 0 | Fabricado: 0 | Acabado: 0</h3>
+        </div>
+        <div class="kpi-card">
+          <span>Dívida vencida</span>
+          <h3 id="kpi-divida">R$ 0,00</h3>
+        </div>
+        <div class="kpi-card kpi-card-event">
+          <span>Resultado do estoque acabado</span>
+          <h3 id="kpi-estoque-evento">Nenhum evento registrado</h3>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h4>Evolução de Caixa e Lucro Mensal</h4>
+          <canvas id="financeChart"></canvas>
+        </div>
+        <div class="card">
+          <h4>Histórico detalhado de resultados</h4>
+          <div class="table-responsive">
+            <table id="history-table">
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th>Receita B2C</th>
+                  <th>B2B à vista</th>
+                  <th>B2B a prazo</th>
+                  <th>Receita B2B total</th>
+                  <th>Custo fixo</th>
+                  <th>Custo insumos produzidos</th>
+                  <th>Custo insumos comprados</th>
+                  <th>Custo Marketing</th>
+                  <th>Custo Branding</th>
+                  <th>Funcionário</th>
+                  <th>Delivery</th>
+                  <th>Resultado</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 2: VITRINE DO MERCADO & NEGOCIAÇÕES B2B -->
+    <section id="tab-vitrine" class="tab-content hidden">
+      <!-- Propostas Recebidas -->
+      <div class="card mb-20">
+        <h3>📩 Propostas Recebidas (Aguardando seu Aceite)</h3>
+        <div id="incoming-proposals-list">
+          <p class="muted">Nenhuma proposta pendente no momento.</p>
+        </div>
+      </div>
+
+      <!-- Vitrine de Todas as Empresas -->
+      <h3>🏢 Vitrine Comercial das Empresas (Clique para Negociar)</h3>
+      <p class="muted mb-15">Contratos fechados com equipes da sala garantem <strong>+35% de peso</strong> na atratividade e geram receita direta ao vendedor. Os estoques não são exibidos aos concorrentes.</p>
+      <div id="vitrine-grid" class="vitrine-grid"></div>
+
+      <div class="grid-2 mt-20">
+        <div class="card">
+          <h3>📥 Caixa de compras B2B — mês atual</h3>
+          <p>Quantidade imediata: <strong id="b2b-compra-q-imediata">0 un.</strong></p>
+          <p>Quantidade programada: <strong id="b2b-compra-q-programada">0 un.</strong></p>
+          <p>Valor à vista: <strong id="b2b-compra-avista">R$ 0,00</strong></p>
+          <p>Valor a prazo: <strong id="b2b-compra-prazo">R$ 0,00</strong></p>
+        </div>
+        <div class="card">
+          <h3>📤 Caixa de vendas B2B — mês atual</h3>
+          <p>Quantidade imediata: <strong id="b2b-venda-q-imediata">0 un.</strong></p>
+          <p>Quantidade programada: <strong id="b2b-venda-q-programada">0 un.</strong></p>
+          <p>Recebimentos à vista: <strong id="b2b-venda-avista">R$ 0,00</strong></p>
+          <p>Recebimentos a prazo: <strong id="b2b-venda-prazo">R$ 0,00</strong></p>
+        </div>
+      </div>
+
+      <div class="card mt-20">
+        <h3>📦 Estoque próprio para operações</h3>
+        <p>Estoque de insumo fabricado disponível para venda B2B: <strong id="b2b-estoque-fabricado-disponivel">0 un.</strong></p>
+        <p class="muted">O saldo considera as reservas de entregas programadas e não revela o estoque aos concorrentes.</p>
+      </div>
+
+      <!-- Contratos Ativos no Mês -->
+      <div class="card mt-20">
+        <h3>✅ Contratos Fechados / Enviados neste Mês</h3>
+        <div id="active-contracts-list">
+          <p class="muted">Nenhum contrato registrado neste mês.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 3: DECISÕES DO MÊS -->
+    <section id="tab-decisoes" class="tab-content hidden">
+      <div class="card">
+        <h3>🎯 Alocação de Estratégia — <span id="dec-round-label">Mês 1</span></h3>
+        <div id="locked-alert" class="alert-locked hidden">
+          🔒 <strong>Decisões enviadas e bloqueadas!</strong> Aguarde o professor processar o fechamento do mês.
+        </div>
+
+        <form id="decision-form" onsubmit="enviarDecisao(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Compra do Fornecedor A (R$ 12/un.)</label>
+              <input type="number" id="dec-compra-a" min="0" step="1" value="0">
+              <small class="muted">Mais barato; entrega na próxima rodada.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Compra do Fornecedor B (R$ 14/un.)</label>
+              <input type="number" id="dec-compra-b" min="0" step="1" value="0">
+              <small class="muted">Mais caro; entrega imediatamente.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Fabricar insumo (R$ 7/un.)</label>
+              <div class="inline-action">
+                <input type="number" id="dec-fabrica-qtd" min="1" step="1" value="1">
+                <button type="button" id="btn-fabricar-insumo" class="btn btn-primary btn-sm" onclick="fabricarInsumos()">Fabricar insumos</button>
+              </div>
+              <small class="muted">A fabricação reduz o caixa e aumenta o estoque fabricado imediatamente. Pode ser repetida enquanto a rodada estiver aberta.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Produzir produto acabado</label>
+              <div class="inline-action">
+                <input type="number" id="dec-produz-acabado-qtd" min="1" step="1" value="1">
+                <button type="button" id="btn-produzir-acabado" class="btn btn-primary btn-sm" onclick="produzirProdutoAcabado()">Produzir produto acabado</button>
+              </div>
+              <small class="muted">Cada unidade consome 1 insumo comprado e 1 insumo fabricado. A operação é bloqueada se faltar qualquer saldo disponível.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Preço Unitário B2C (R$) — <small>Média de mercado: R$ 50,00</small></label>
+              <input type="number" id="dec-preco" min="10" max="500" step="1" required placeholder="Ex: 50">
+            </div>
+
+            <div class="form-group">
+              <label>Fornecedores de commodity</label>
+              <p class="scenario-info-box">A: R$ 12/unidade, entrega na próxima rodada. B: R$ 14/unidade, entrega imediata. O insumo é igual; muda apenas preço e prazo.</p>
+            </div>
+
+            <div class="form-group">
+              <label>Pacote de Marketing de Atração / Ads</label>
+              <select id="dec-mkt-pacote" required>
+                <option value="0">Sem investimento</option>
+                <option value="1">Básico — ação quinzenal</option>
+                <option value="2">Standard — ação semanal</option>
+                <option value="3">Premium — ação diária</option>
+              </select>
+              <small class="muted">Efeito imediato na rodada; escolha no máximo um pacote.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Pacote de Branding / Fidelização</label>
+              <select id="dec-branding-pacote" required>
+                <option value="0">Sem investimento</option>
+                <option value="1">Básico — ação quinzenal</option>
+                <option value="2">Standard — ação semanal</option>
+                <option value="3">Premium — ação diária</option>
+              </select>
+              <small class="muted">Custo imediato; reputação acumulada para os próximos meses.</small>
+            </div>
+          </div>
+
+          <div class="grid-2 mt-15">
+            <div class="form-group">
+              <label><input type="checkbox" id="dec-delivery" value="1"> Ativar Delivery</label>
+              <small class="muted">Custo variável de R$ 5,00 por produto B2C vendido e bônus limitado de conveniência.</small>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" id="dec-funcionario" value="1"> Contratar funcionário</label>
+              <small class="muted">Aumenta o custo fixo em R$ 3.000,00 e melhora parcialmente o atendimento.</small>
+            </div>
+          </div>
+
+          <div class="summary-box decision-summary">
+            <section class="summary-section summary-cash">
+              <h4>Caixa</h4>
+              <p>Saldo anterior: <strong id="dec-caixa-anterior">R$ 35.000,00</strong></p>
+              <p>Entrada — vendas B2B à vista: <strong id="dec-entrada-b2b">R$ 0,00</strong></p>
+              <p>Custo fixo: <strong id="dec-custo-fixo">R$ 6.000,00</strong></p>
+              <p>Despesas: <strong id="dec-despesas">R$ 0,00</strong></p>
+              <p class="summary-total">Saldo atual: <strong id="dec-caixa-disp">R$ 44.000,00</strong></p>
+              <p>Contas a receber: <strong id="dec-contas-receber">R$ 0,00</strong></p>
+              <p>Contas a pagar: <strong id="dec-contas-futuras">R$ 0,00</strong></p>
+              <p class="summary-total">Saldo projetado/futuro: <strong id="dec-saldo-projetado">R$ 44.000,00</strong></p>
+            </section>
+
+            <section class="summary-section">
+              <h4>Estoque de Insumos Comprados</h4>
+              <p>Anterior: <strong id="dec-estoque-comprado-anterior">0 un.</strong></p>
+              <p>Atual: <strong id="dec-estoque-comprado-atual">0 un.</strong></p>
+              <p>Programado: <strong id="dec-estoque-comprado-programado">0 un.</strong></p>
+              <p class="summary-total">Disponível: <strong id="dec-estoque-comprado">0 un.</strong></p>
+            </section>
+
+            <section class="summary-section">
+              <h4>Estoque Fabricado</h4>
+              <p>Anterior: <strong id="dec-estoque-fabricado-anterior">0 un.</strong></p>
+              <p>Atual: <strong id="dec-estoque-fabricado">0 un.</strong></p>
+              <p>Reservado: <strong id="dec-estoque-fabricado-reservado">0 un.</strong></p>
+              <p>Reservado à prazo: <strong id="dec-estoque-fabricado-programado">0 un.</strong></p>
+              <p class="summary-total">Disponível: <strong id="dec-estoque-fabricado-disponivel">0 un.</strong></p>
+            </section>
+
+            <section class="summary-section summary-stock-total">
+              <p>Estoque consolidado disponível: <strong id="dec-estoque-consolidado">0 un.</strong></p>
+              <p>Produto acabado disponível: <strong id="dec-estoque-acabado">0 un.</strong></p>
+            </section>
+          </div>
+
+          <button type="submit" id="btn-submit-decisao" class="btn btn-primary full-width mt-15">Confirmar e Bloquear Decisões do Mês</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ABA 4: EDITAR MEU PROSPECT -->
+    <section id="tab-prospect" class="tab-content hidden">
+      <div class="card">
+        <h3>✏️ Configurar Vitrine Comercial (Meu Prospect)</h3>
+        <p class="muted mb-15">Estas informações aparecem para todas as outras equipes na Vitrine do Mercado.</p>
+        <form id="prospect-form" onsubmit="salvarProspect(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Nome Fantasia da Empresa:</label>
+              <input type="text" id="pros-nome" required placeholder="Ex: Grão & Brasa Cafeteria">
+            </div>
+            <div class="form-group">
+              <label>Slogan / Pitch Comercial Curto:</label>
+              <input type="text" id="pros-slogan" required placeholder="Ex: O melhor café especial e coffee break corporativo">
+            </div>
+            <div class="form-group">
+              <label>O que vendemos ao Mercado (B2C):</label>
+              <input type="text" id="pros-b2c" required placeholder="Ex: Cafés artesanais, brunch e kits presente">
+            </div>
+            <div class="form-group">
+              <label>O que oferecemos às Empresas da Sala (B2B):</label>
+              <input type="text" id="pros-b2b" required placeholder="Ex: Coffee break para eventos, brindes e pacotes corporativos">
+            </div>
+            <div class="form-group">
+              <label>Valor Tabela do Pacote B2B (R$):</label>
+              <input type="number" id="pros-valor" min="500" step="100" required placeholder="Ex: 5000">
+            </div>
+            <div class="form-group">
+              <label>Condição Padrão de Pagamento:</label>
+              <select id="pros-pagamento">
+                <option value="avista">À Vista (100% no Mês Atual)</option>
+                <option value="prazo30">Prazo 30 dias (100% no avanço da rodada)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Prazo de Entrega Padrão:</label>
+              <select id="pros-prazo">
+                <option value="imediato">Entrega Imediata (Bônus vale neste Mês)</option>
+                <option value="programado">Entrega Programada (Bônus vale no Próx. Mês)</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary mt-15">Salvar Vitrine Comercial</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODAL DE NEGOCIAÇÃO DE CONTRATO -->
+  <div id="modal-contrato" class="modal hidden">
+    <div class="modal-content card">
+      <span class="close-modal" onclick="fecharModal()">&times;</span>
+      <h3 id="modal-target-name">Negociar com Empresa</h3>
+      <p id="modal-target-desc" class="muted mb-15"></p>
+      
+      <form id="contrato-form" onsubmit="enviarPropostaContrato(event)">
+        <input type="hidden" id="prop-target-id">
+        <div class="form-group">
+          <label>Valor Negociado do Contrato (R$):</label>
+          <input type="number" id="prop-valor" min="500" step="100" required>
+        </div>
+        <div class="form-group">
+          <label>Produto negociado:</label>
+          <p class="scenario-info-box">Insumo fabricado pela empresa vendedora. Ao comprar, ele entra no estoque de insumo comprado da empresa compradora.</p>
+        </div>
+        <div class="form-group">
+          <label>Quantidade de insumos:</label>
+          <input type="number" id="prop-qtd" min="1" step="1" value="1" required>
+        </div>
+        <div class="form-group">
+          <label>Condição de Pagamento Combinada:</label>
+          <select id="prop-pagamento">
+            <option value="avista">À Vista (altera o caixa imediatamente)</option>
+            <option value="prazo30">Prazo 30 dias (altera o caixa no avanço da rodada)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prazo de Entrega Combinado:</label>
+          <select id="prop-prazo">
+            <option value="imediato">Entrega Imediata (Ativa bônus 1.35x neste Mês)</option>
+            <option value="programado">Entrega Programada (Ativa bônus 1.35x no Próx. Mês)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cláusula / Detalhes do Acordo:</label>
+          <input type="text" id="prop-clausula" required placeholder="Ex: Fornecimento exclusivo + divulgação nas redes">
+        </div>
+        <button type="submit" class="btn btn-primary full-width">Enviar Proposta para Aceite</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PAINEL DO PROFESSOR -->
+  <div id="professor-screen" class="container hidden">
+    <header class="topbar">
+      <div>
+        <h2>👨‍🏫 Painel de Controle do Professor</h2>
+        <span id="prof-round-badge" class="badge">Mês Atual: 1</span>
+      </div>
+      <button onclick="logout()" class="btn btn-outline">Sair</button>
+    </header>
+
+    <div class="grid-2 mb-20">
+      <!-- Controle de Cenário e Processamento -->
+      <div class="card">
+        <h3>⚙️ Configuração da Rodada</h3>
+        <div class="form-group">
+          <label>Selecione o Cenário de Mercado para o Mês:</label>
+          <select id="prof-scenario-select" onchange="atualizarCenarioAtivo()"></select>
+        </div>
+        <p id="prof-scenario-detail" class="scenario-info-box"></p>
+
+        <div class="btn-group mt-15">
+          <button onclick="processarRodada()" class="btn btn-success">🚀 Calcular Rodada e Avançar Mês</button>
+          <button onclick="toggleStatusRodada()" id="btn-toggle-status" class="btn btn-warning">Bloquear/Desbloquear Envios</button>
+        </div>
+        <hr class="mt-20 mb-15">
+        <button onclick="resetarJogoCompleto()" class="btn btn-danger btn-sm">⚠️ Resetar Jogo (Voltar ao Mês 1)</button>
+      </div>
+
+      <!-- Status de Envio das Equipes -->
+      <div class="card">
+        <h3>📋 Status de Entrega das Equipes</h3>
+        <ul id="prof-status-list" class="status-list"></ul>
+      </div>
+    </div>
+
+    <!-- Ranking Geral e Pontuação para Nota -->
+    <div class="card">
+      <h3>🏆 Ranking Geral e Pontuação (Base para Nota)</h3>
+      <div class="table-responsive">
+        <table id="prof-ranking-table">
+          <thead>
+            <tr>
+              <th>Posição</th>
+              <th>Grupo / Empresa</th>
+              <th>Caixa Atual</th>
+              <th>Market Share</th>
+              <th>Branding</th>
+              <th>Score (0-100)</th>
+              <th>Estrelas</th>
+              <th>Histórico</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
